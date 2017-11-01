@@ -74,6 +74,7 @@ g M-x      バッファ再評価(ファイル作成時など、表示内容を�
 "C-M-i"                 call elpy completion
 "C-right/left/up/down"  currsor move next block
 "M-right/left/up/down"  Edit indent
+"C-c C-r f"             Format code using the available formatter.
 
 
 

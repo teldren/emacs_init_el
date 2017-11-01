@@ -1,3 +1,13 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Note
+;; Requirement software, font, etc.
+;; - Ricty for font
+;; - Aspell for spell check
+;; - Anaconda, etc. for python, elpy
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
+
 ;; Hide startup
 (setq inhibit-startup-message t)
 
@@ -151,7 +161,11 @@
 (setq-default ispell-program-name "aspell")
 (eval-after-load "ispell"
  '(add-to-list 'ispell-skip-region-alist '("[^\000-\377]+")))
-(add-hook 'yatex-mode-hook 'flyspell-mode)
+(mapc
+ (lambda (hook)
+   (add-hook hook 'flyspell-mode))
+ '(yatex-mode-hook
+   text-mode-hook))
 ;(custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -161,6 +175,45 @@
 ; '(flyspell-auto-correct-binding [(control 58)])
 ; '(google-translate-default-source-language "ja")
 ; '(google-translate-default-target-language "en"))
+
+(defun flyspell-emacs-popup-textual (event poss word)
+  "A textual flyspell popup menu."
+  (require 'popup)
+  (let* ((corrects (if flyspell-sort-corrections
+                       (sort (car (cdr (cdr poss))) 'string<)
+                     (car (cdr (cdr poss)))))
+         (cor-menu (if (consp corrects)
+                       (mapcar (lambda (correct)
+                                 (list correct correct))
+                               corrects)
+                     '()))
+         (affix (car (cdr (cdr (cdr poss)))))
+         show-affix-info
+         (base-menu  (let ((save (if (and (consp affix) show-affix-info)
+                                     (list
+                                      (list (concat "Save affix: " (car affix))
+                                            'save)
+                                      '("Accept (session)" session)
+                                      '("Accept (buffer)" buffer))
+                                   '(("Save word" save)
+                                     ("Accept (session)" session)
+                                     ("Accept (buffer)" buffer)))))
+                       (if (consp cor-menu)
+                           (append cor-menu (cons "" save))
+                         save)))
+         (menu (mapcar
+                (lambda (arg) (if (consp arg) (car arg) arg))
+                base-menu)))
+    (cadr (assoc (popup-menu* menu :scroll-bar t) base-menu))))
+
+(defun flyspell-emacs-popup-choose (org-fun event poss word)
+  (if (window-system)
+      (funcall org-fun event poss word)
+    (flyspell-emacs-popup-textual event poss word)))
+
+(eval-after-load "flyspell"
+  '(progn
+     (advice-add 'flyspell-emacs-popup :around #'flyspell-emacs-popup-choose)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -461,10 +514,11 @@ are always included."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(grep-command "grep --color=always -nH -e ")
  '(minimap-window-location (quote right))
  '(package-selected-packages
    (quote
-    (company-quickhelp zenburn-theme web-mode tabbar smartrep shell-switcher py-yapf popwin minimap material-theme markdown-mode js2-mode highlight-symbol helm-flycheck helm elpy auto-complete))))
+    (magit company-quickhelp zenburn-theme web-mode tabbar smartrep shell-switcher py-yapf popwin minimap material-theme markdown-mode js2-mode highlight-symbol helm-flycheck helm elpy auto-complete))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
